@@ -1,0 +1,53 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  labels:
+    version: v1
+spec:
+  template:
+    metadata:
+      labels:
+        name: fluentd
+    spec:
+      containers:
+        - resources:
+            requests:
+              cpu: 0.15
+          image: jvdp1234/kubernetes-fluentd:1.0
+          imagePullPolicy: Always
+          name: fluentd
+          volumeMounts:
+          - mountPath: "/var/log/containers"
+            name: kubelet-containers
+          - mountPath: "/var/lib/docker/containers"
+            name: docker-containers
+          - mountPath: "/var/run/docker.sock"
+            name: docker
+          # command: ["fluentd"]
+          securityContext:
+            privileged: true
+          ports:
+            - hostPort: 5170
+              containerPort: 5170
+              protocol: TCP
+              hostIP: 127.0.0.1
+          env:
+            - name: KUBERNETES_URL
+              value: "http://k8s-internal-master.mydomain.com"
+            - name: KUBERNETES_VERIFY_SSL
+              value: "false"
+            - name: ELASTICSEARCH_HOST
+              value: "elasticsearch.default.svc"
+            - name: ELASTICSEARCH_PORT
+              value: "9200"
+      volumes:
+      - name: kubelet-containers
+        hostPath:
+          path: /var/log/containers
+      - name: docker-containers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: docker
+        hostPath:
+          path: /var/run/docker.sock
